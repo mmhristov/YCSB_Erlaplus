@@ -8,10 +8,11 @@
 
 -define(SERVER, ?MODULE).
 
--record(raft_erla_client_state, {
+-record(state, {
   id = -1,
   raftNodes = [],
-  clientPid = -1
+  clientPid = -1,
+  requestCount = 0
 }).
 
 %%%===================================================================
@@ -28,47 +29,48 @@ init([Id, RaftNodes]) ->
   % connect to raft nodes
   [io:format("Attempting to communicate with node ~s, response: ~s~n", [N, net_adm:ping(N)]) || N <- RaftNodes],
   % init state
-  {ok, #raft_erla_client_state{id = Id, raftNodes = RaftNodes}}.
+  {ok, #state{id = Id, raftNodes = RaftNodes}}.
 
-handle_call(_Request, _From, State = #raft_erla_client_state{}) ->
+handle_call(_Request, _From, State = #state{}) ->
   erlang:display("CALL"),
   {reply, ok, State}.
 
-handle_cast(_Request, State = #raft_erla_client_state{}) ->
+handle_cast(_Request, State = #state{}) ->
   erlang:display("CAST"),
   {noreply, State}.
 
-handle_info({get, M}, State = #raft_erla_client_state{}) ->
-  {noreply, State};
-
-handle_info({put, {Key, Value}, RaftNodeId, SenderPid}, State = #raft_erla_client_state{}) ->
- M = #{key_mtype => "ClientPutRequest",
-    key_mcmd => #{
-      key_idx => 1, key_type => "Put", key_key => Key,  key_value => Value
-    },
-    key_msource => State#raft_erla_client_state.id
+handle_info({get, Key, RaftNodeId, SenderPid}, State = #state{}) ->
+  NewReqCount = State#state.requestCount + 1,
+  M = #{
+    key_mtype => "ClientGetRequest",
+    key_mcmd => #{key_idx => 1, key_type => "Get", key_key => Key},
+    key_msource =>State#state.id
   },
   erla_libs_comm:send(RaftNodeId, M),
-  {noreply, State#raft_erla_client_state{clientPid = SenderPid}};
+  {noreply, State#state{clientPid = SenderPid, requestCount = NewReqCount}};
 
-handle_info(M = #{key_mtype := "ClientPutResponse"}, State = #raft_erla_client_state{}) ->
+handle_info({put, {Key, Value}, RaftNodeId, SenderPid}, State = #state{}) ->
+  NewReqCount = State#state.requestCount + 1,
+  M = #{
+    key_mtype => "ClientPutRequest",
+    key_mcmd => #{key_idx => NewReqCount, key_type => "Put", key_key => Key,  key_value => Value},
+    key_msource => State#state.id
+  },
+  erla_libs_comm:send(RaftNodeId, M),
+  {noreply, State#state{clientPid = SenderPid, requestCount = NewReqCount}};
+
+handle_info(M = #{key_mtype := "ClientPutResponse"}, State = #state{}) ->
   erlang:display("Received ClientPutResponse"),
-  % #{key_mtype => "ClientPutResponse", key_msuccess => false,
-  %   key_mresponse => #{key_idx => ID, key_key => k)}, key_msource => State2#state_raftNode.procvar_ID, key_mleaderHint => L, key_mdest => Client}
   Leader =  maps:get(key_mleaderHint, M),
   Success = maps:get(key_msuccess, M),
   Resp = maps:get(key_mresponse, M),
 
   Key = maps:get(key_key, Resp),
 
-  State#raft_erla_client_state.clientPid ! {Success, Key},
+  State#state.clientPid ! {Success, Key},
   {noreply, State};
 
-handle_info({redirect, M, RaftNodeId, SenderPid}, State = #raft_erla_client_state{}) ->
-  erla_libs_comm:send(RaftNodeId, M),
-  {noreply, State#raft_erla_client_state{clientPid = SenderPid}};
-
-handle_info(M = #{key_mtype := "ClientGetResponse"}, State = #raft_erla_client_state{}) ->
+handle_info(M = #{key_mtype := "ClientGetResponse"}, State = #state{}) ->
   erlang:display("Received ClientGetResponse"),
   Leader =  maps:get(key_mleaderHint, M),
   Success = maps:get(key_msuccess, M),
@@ -77,17 +79,17 @@ handle_info(M = #{key_mtype := "ClientGetResponse"}, State = #raft_erla_client_s
   IsOk = maps:get(key_ok, Resp),
   Val = maps:get(key_value, Resp),
 
-  State#raft_erla_client_state.clientPid ! {Success, IsOk, Val},
+  State#state.clientPid ! {Success, IsOk, Val},
   {noreply, State};
 
-handle_info(M, State = #raft_erla_client_state{}) ->
+handle_info(M, State = #state{}) ->
   erlang:display(M),
   {noreply, State}.
 
-terminate(_Reason, _State = #raft_erla_client_state{}) ->
+terminate(_Reason, _State = #state{}) ->
   ok.
 
-code_change(_OldVsn, State = #raft_erla_client_state{}, _Extra) ->
+code_change(_OldVsn, State = #state{}, _Extra) ->
   {ok, State}.
 
 %%%===================================================================

@@ -1,10 +1,8 @@
 package site.ycsb.db;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import site.ycsb.ByteIterator;
-import site.ycsb.DB;
-import site.ycsb.DBException;
-import site.ycsb.Status;
+import com.fasterxml.jackson.core.type.TypeReference;
+import site.ycsb.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -67,57 +65,74 @@ public class ErlaRaftkvsClient extends DB {
 
     int currentClientId = 0;
 
-    //[#{key_type => "Put", key_key => "a", key_value => "Value1"}, #{key_type => "Get", key_key => "a"}],
-    // #{key_mtype => "ClientGetRequest", key_mcmd => #{key_idx => State1#state_client.var_reqId, key_type => "Get",
-    //  key_key => maps:get(key_key, State1#state_client.var_req)}, key_msource => State1#state_client.procvar_ID})
-    OtpErlangMap payload = new OtpErlangMap(
-        // keys
+    OtpErlangTuple msg = new OtpErlangTuple(
         new OtpErlangObject[]{
-            new OtpErlangAtom("key_mtype"),
-            new OtpErlangAtom("key_mcmd"),
-            new OtpErlangAtom("key_msource")
-        },
-        // values
-        new OtpErlangObject[]{
-            new OtpErlangString("ClientGetRequest"),
-            new OtpErlangMap(
-                // keys
-                new OtpErlangObject[]{
-                    new OtpErlangAtom("key_idx"),
-                    new OtpErlangAtom("key_type"),
-                    new OtpErlangAtom("key_key")},
-                // values
-                new OtpErlangObject[]{
-                    new OtpErlangInt(REQ_INDEX),
-                    new OtpErlangString("Get"),
-                    new OtpErlangString(keyVal)}
-            ),
-            new OtpErlangInt(CLIENT_PROC_NAMES.get(currentClientId))
+            new OtpErlangAtom("get"),
+            new OtpErlangString(keyVal),
+            new OtpErlangInt(1),
+            mbox.self()
         }
     );
-
-    OtpErlangTuple msg = new OtpErlangTuple(
-        new OtpErlangObject[]{new OtpErlangAtom("redirect"), payload, new OtpErlangInt(1), mbox.self()});
-
 
     mbox.send("raftkvs_client", CLIENTS.get(0), msg);
 
     OtpMsg response;
     try {
-      response = mbox.receiveMsg();
-    } catch (OtpErlangExit e) {
+      response = mbox.receiveMsg(3000);
+    } catch (OtpErlangExit | InterruptedException e) {
       throw new RuntimeException(e);
     }
 
+    OtpErlangObject responsePayload = null;
     if (response != null) {
       try {
-        OtpErlangObject responsePayload =  response.getMsg();
-        System.out.println(responsePayload.toString());
+        responsePayload =  response.getMsg();
       } catch (OtpErlangDecodeException e) {
         throw new RuntimeException(e);
       }
     }
-    return Status.OK;
+    if (responsePayload != null) {
+      System.out.println("Response: " + responsePayload);
+
+      if (responsePayload.getClass() != OtpErlangTuple.class) {
+        throw new IllegalStateException("Received unexpected response type " + responsePayload.getClass());
+      }
+      OtpErlangTuple responseTuple = (OtpErlangTuple) responsePayload;
+
+      if (responseTuple.arity() != 3) {
+        throw new IllegalStateException("Received unexpected number of terms in response tuple. " +
+            "Received: " + responseTuple.arity() + ", Expected: 3");
+      }
+
+      OtpErlangAtom isSuccess = (OtpErlangAtom) responseTuple.elementAt(0); // has the leader responded?
+      OtpErlangAtom isFound = (OtpErlangAtom) responseTuple.elementAt(1); // was the key present in the KVS?
+      OtpErlangString value = (OtpErlangString) responseTuple.elementAt(2); // the value linked to the key
+
+      if (!isSuccess.booleanValue()) {
+        throw new IllegalStateException("Read request failed. Leader has changed.");
+      }
+
+      if (!isFound.booleanValue()) {
+        return Status.NOT_FOUND;
+      }
+
+      // Convert JSON value to Map
+      ObjectMapper mapper = new ObjectMapper();
+      HashMap<String, String> values;
+      try {
+        values = mapper.readValue(value.stringValue(), new TypeReference<HashMap<String, String>>() {});
+      } catch (JsonProcessingException e) {
+        throw new RuntimeException(e);
+      }
+
+      for (Map.Entry<String, String> entry : values.entrySet()) {
+        result.put(entry.getKey(), new StringByteIterator(entry.getValue()));
+      }
+
+      return Status.OK;
+    } else {
+      return Status.ERROR;
+    }
   }
 
   /**
@@ -169,7 +184,7 @@ public class ErlaRaftkvsClient extends DB {
     Map<String, String> strValues = values.entrySet()
         .stream()
         .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
-    String content = "";
+    String content;
     try {
       content = new ObjectMapper().writeValueAsString(strValues);
     } catch (JsonProcessingException e) {
