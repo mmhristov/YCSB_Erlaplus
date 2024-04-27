@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/2]).
+-export([start_link/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2,
   code_change/3]).
 
@@ -19,8 +19,8 @@
 %%% Spawning and gen_server implementation
 %%%===================================================================
 
-start_link(Id, RaftNodes) ->
-  gen_server:start_link({local, 'raftkvs_client'}, ?MODULE, [Id, RaftNodes], []).
+start_link(Id, Name, RaftNodes) ->
+  gen_server:start_link({local, Name}, ?MODULE, [Id, RaftNodes], []).
 
 init([Id, RaftNodes]) ->
   % register
