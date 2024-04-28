@@ -1,3 +1,5 @@
+%% This module is taken from ra's tutorial.
+%%  (see https://github.com/rabbitmq/ra/blob/main/docs/internals/STATE_MACHINE_TUTORIAL.md)
 -module(ra_kv).
 -behaviour(ra_machine).
 -export([apply/3, init/1, start/0]).
