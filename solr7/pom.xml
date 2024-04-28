@@ -63,15 +63,18 @@ LICENSE file.
 
     <dependency>
       <groupId>org.apache.solr</groupId>
-      <artifactId>solr-test-framework</artifactId>
-      <version>${solr7.version}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>jdk.tools</groupId>
-          <artifactId>jdk.tools</artifactId>
-        </exclusion>
-      </exclusions>
+        <artifactId>solr-test-framework</artifactId>
+        <version>9.5.0</version>
+        <scope>test</scope>
+<!--      <artifactId>solr-test-framework</artifactId>-->
+<!--      <version>${solr7.version}</version>-->
+<!--      <scope>test</scope>-->
+<!--      <exclusions>-->
+<!--        <exclusion>-->
+<!--          <groupId>jdk.tools</groupId>-->
+<!--          <artifactId>jdk.tools</artifactId>-->
+<!--        </exclusion>-->
+<!--      </exclusions>-->
     </dependency>
   </dependencies>
 

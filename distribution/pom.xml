@@ -39,11 +39,11 @@ LICENSE file.
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>site.ycsb</groupId>
-      <artifactId>accumulo1.9-binding</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>site.ycsb</groupId>-->
+<!--      <artifactId>accumulo1.9-binding</artifactId>-->
+<!--      <version>${project.version}</version>-->
+<!--    </dependency>-->
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>aerospike-binding</artifactId>
@@ -262,6 +262,11 @@ LICENSE file.
     <dependency>
       <groupId>site.ycsb</groupId>
       <artifactId>zookeeper-binding</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>site.ycsb</groupId>
+      <artifactId>ErlaRaftkvs-binding</artifactId>
       <version>${project.version}</version>
     </dependency>
 
