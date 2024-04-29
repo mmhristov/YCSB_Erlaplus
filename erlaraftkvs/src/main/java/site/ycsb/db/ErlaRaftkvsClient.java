@@ -43,7 +43,6 @@ public class ErlaRaftkvsClient extends DB {
     int currThreadIndex = INIT_COUNT.incrementAndGet();
     synchronized (ErlaRaftkvsClient.class) {
       if (node == null) {
-        System.out.println("I AM HERE " + currThreadIndex);
         try {
           /*
             Create and register self
@@ -99,6 +98,16 @@ public class ErlaRaftkvsClient extends DB {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
+    }
+  }
+
+
+  @Override
+  public void cleanup() {
+    if (INIT_COUNT.decrementAndGet() == 0) {
+      THREAD_MBOXES.clear();
+      THREAD_MBOXES.values().forEach(OtpMbox::close);
+      node.close();
     }
   }
 

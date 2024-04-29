@@ -41,7 +41,6 @@ public class RaRaftkvsClient extends DB {
     int currThreadIndex = INIT_COUNT.incrementAndGet();
     synchronized (RaRaftkvsClient.class) {
       if (node == null) {
-        System.out.println("I AM HERE " + currThreadIndex);
         try {
           /*
             Create and register self
@@ -94,6 +93,14 @@ public class RaRaftkvsClient extends DB {
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
+    }
+  }
+
+  public void cleanup() {
+    if (INIT_COUNT.decrementAndGet() == 0) {
+      THREAD_MBOXES.clear();
+      THREAD_MBOXES.values().forEach(OtpMbox::close);
+      node.close();
     }
   }
 
