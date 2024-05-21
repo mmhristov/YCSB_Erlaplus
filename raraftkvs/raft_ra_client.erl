@@ -28,9 +28,10 @@ handle_cast(_Request, State = #state{}) ->
   {noreply, State}.
 
 handle_info({get, Key, _RaftNodeId, SenderPid}, State = #state{}) ->
-  {Success, Value, {_NodeId, _LeaderNodeName}} = ra:process_command(ra_kv1, {read, Key}),
+  {ok, Value, {_Leader, _}} = ra:consistent_query(ra_kv1, fun(Store) -> maps:get(Key, Store, undefined) end),
   erlang:display("Received ClientGetResponse"),  
-  SenderPid ! {Success =:= ok, Success =:= ok, Value},
+  IsFound = Value =/= default,
+  SenderPid ! {true, IsFound, Value},
   {noreply, State};
 
 handle_info({put, {Key, Value}, _RaftNodeId, SenderPid}, State = #state{}) ->
