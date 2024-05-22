@@ -8,7 +8,7 @@ Add local jinterface jar file to dependencies:
 ```
 cd ..
 cd jinterface
-mvn install:install-file -Dfile="OtpErlang.jar" -DgroupId="site.ycsb" -DartifactId="erlaraftkvs-binding" -Dversion="1.14" -Dpackaging="jar"
+mvn install:install-file -Dfile="OtpErlang.jar" -DgroupId="site.ycsb" -DartifactId="jinterface" -Dversion="1.14" -Dpackaging="jar"
 ```
 
 ## Quickstart:
