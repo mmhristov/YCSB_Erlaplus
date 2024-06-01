@@ -8,7 +8,7 @@ This binding uses _jinterface_ to spawn custom Erlang clients to facilitate the 
 ```
 cd ..
 cd jinterface
-mvn install:install-file -Dfile="OtpErlang.jar" -DgroupId="site.ycsb" -DartifactId="erlaraftkvs-binding" -Dversion="1.14" -Dpackaging="jar"
+mvn install:install-file -Dfile="OtpErlang.jar" -DgroupId="site.ycsb" -DartifactId="jinterface" -Dversion="1.14" -Dpackaging="jar"
 ```
 ### 2. Compile Erlang files:
 - Compile the RaftKVS Erlang file from [Erla+'s repository](https://github.com/mmhristov/Erlaplus/tree/master/Examples/RaftKVS).
