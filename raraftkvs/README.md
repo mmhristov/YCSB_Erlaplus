@@ -16,28 +16,6 @@ mvn install:install-file -Dfile="OtpErlang.jar" -DgroupId="site.ycsb" -Dartifact
 - Compile the Erlang client, named _raft_ra_client_, on the node that should be generating the load.
 
 ## Quickstart:
-### 1. Create two terminals: one for the Raft cluster and one for the benchmark.
-### 2. Build binding:
-```
-cd ..
-mvn -pl site.ycsb:raraftkvs-binding -am clean package
-```
-
-
-
-### 4. Set up 
-
-### 4. Run workload in terminal:
-```
-../bin/ycsb run raraftkvs -p erlang_host_name="myHost" -p -P workloads/workloada
-```
-Note that ```erlang_host_name``` refers to the host name of the node where the Erlang clients will be running.
-In case of running the cluster and the client on the same Erlang node, this argument can be left empty.
-
-If the Erlang clients and the Raft cluster should be located on different nodes (or even machines), then make sure
-to connect their corresponding nodes (e.g. via ```net_adm:ping()```) and provide the clients' nodes' host name.
-
-## Quickstart:
 
 ### 1. Create two terminals: one for the Raft cluster and one for the benchmark
 
@@ -64,7 +42,7 @@ Two approaches:
 
 ### 4. Run workload in terminal:
 ```
-../bin/ycsb run erlaraftkvs -p erlang_host_name="myHost" -p -P workloads/workloada
+../bin/ycsb run raraftkvs -p erlang_host_name="myHost" -p -P workloads/workloada
 ```
 Note that ```erlang_host_name``` refers to the host name of the node where the Erlang clients will be running.
-In the case of
+In the case of running the cluster and the client on the same Erlang node, this argument can be left empty.
